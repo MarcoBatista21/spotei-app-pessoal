@@ -1,6 +1,6 @@
 # Spotei — Car Spotting
 
-Aplicativo React Native + Expo + TypeScript criado para Programação Mobile II. A organização segue `aula-30-09`: telas em `src/app`, componentes simples, hooks, tipos, serviços com Axios, SQLite, AsyncStorage e stores Zustand. A interface usa `StyleSheet`, fundo escuro, ciano, magenta e roxo, com bordas arredondadas. Novo spot fica no ícone superior esquerdo e Explorar no direito; a barra inferior contém Início, Ranking e Perfil.
+Aplicativo React Native + Expo + TypeScript para Android, iOS e web. A estrutura usa telas em `src/app`, componentes simples, hooks, tipos, serviços com Axios, SQLite, AsyncStorage e stores Zustand. A interface usa `StyleSheet`, fundo escuro, ciano, magenta e roxo, com bordas arredondadas. Novo spot fica no ícone superior esquerdo e Explorar no direito; a barra inferior contém Início, Ranking e Perfil.
 
 O perfil prioriza as fotos em uma grade de três colunas. Conquistas têm uma aba própria, e privacidade, moderação e saída ficam na engrenagem. Criar um spot segue três etapas: foto, identificação do carro e publicação. As opções da demonstração ficam recolhidas; câmera e galeria são os atalhos principais.
 
@@ -10,23 +10,55 @@ A prévia usa o mesmo quadro do feed e dos detalhes da publicação. O ícone de
 
 Os contadores de seguidores e seguindo abrem listas de perfis; o contador de spots leva à grade. Os três pontinhos abrem o menu da publicação, e o ícone de comentário leva ao campo de texto. Registros rejeitados continuam acessíveis ao autor e ao moderador. A moderação permite invalidar registros, arquivar denúncias mantendo o histórico e ajustar a raridade dos modelos identificados pela IA. A recuperação por e-mail aparece apenas no modo de conta online.
 
-## Abrir o aplicativo
+## Desenvolvimento local
 
-As dependências já foram instaladas nesta pasta. Em outro computador, instale Node.js 24 LTS e execute:
+Clone o repositório e instale as dependências:
 
 ```powershell
-cd "C:\Mobile II\trabalho\spotei-app"
-npm install
-npm start
+git clone git@github.com:MarcoBatista21/spotei-app-pessoal.git
+cd spotei-app-pessoal
+npm ci
 ```
 
-Escaneie o QR code com o Expo Go compatível com SDK 57. O computador e o aparelho precisam conseguir se comunicar pela rede. Para o navegador: `npm run web`. Nenhuma chave é necessária para a demonstração.
+Para testar sem chaves ou chamadas pagas, configure o `.env` com:
 
-Na tela inicial, escolha **Entrar no app** quando a IA real estiver habilitada, ou **Entrar na demonstração** no modo simulado. A conta de moderação é separada e também aparece nessa tela. Com `EXPO_PUBLIC_APP_MODE=demo`, contas e publicações existem somente neste aparelho; não use senhas de contas reais para testes.
+```dotenv
+EXPO_PUBLIC_APP_MODE=demo
+EXPO_PUBLIC_IA_MODE=simulada
+```
+
+Inicie o Expo:
+
+```powershell
+npx expo start --clear
+```
+
+Abra o QR code no Expo Go compatível com o SDK do projeto. O computador e o celular precisam se comunicar pela rede; se a rede local bloquear a conexão, tente `npx expo start --tunnel --clear`. Para abrir no navegador, use `npm run web`. No modo demo, contas, publicações e interações ficam locais em cada aparelho; os testadores não verão os dados uns dos outros.
+
+## Build de teste para amigos (Android)
+
+O perfil `preview` em `eas.json` gera um APK instalável e usa demo simulada. Assim, o app instalado não depende de manter o Expo aberto e não inclui uma chave Gemini. Faça login na sua conta Expo e configure o projeto EAS uma vez:
+
+```powershell
+npx eas-cli@latest login
+npx eas-cli@latest build:configure
+```
+
+Depois gere e compartilhe a build:
+
+```powershell
+npx eas-cli@latest build --platform android --profile preview
+```
+
+Ao terminar, o EAS fornece um link para baixar e instalar o APK. Compartilhe esse link somente com os testadores. O Android pode pedir autorização para instalar aplicativos baixados fora da Play Store. O plano gratuito do EAS tem uma cota mensal limitada de builds; confira os [limites atuais](https://expo.dev/pricing).
+
+O perfil `preview` usa `EXPO_PUBLIC_APP_MODE=demo` e `EXPO_PUBLIC_IA_MODE=simulada`. Para testar feed compartilhado ou análise Gemini real, configure o Supabase e publique a função de identificação conforme a seção abaixo; a rota local `src/app/api/analisar+api.ts` é apenas para desenvolvimento e não funciona como backend de um APK publicado. Nunca coloque `GEMINI_API_KEY` em `EXPO_PUBLIC_` nem envie `.env` ao GitHub.
+
+A distribuição nativa para iPhone por TestFlight ou instalação ad hoc exige uma conta Apple Developer paga. Consulte os [requisitos e valores da Apple](https://developer.apple.com/programs/).
 
 ## Reconhecimento real com Gemini no Expo
 
-O `.env` privado deste computador já foi configurado. Em outro computador, copie `.env.example` para `.env`, preencha `GEMINI_API_KEY` e reinicie `npm start`. As variáveis usadas são:
+Para usar Gemini durante o desenvolvimento local, copie `.env.example` para `.env`, preencha `GEMINI_API_KEY` e reinicie o Expo. As variáveis usadas são:
 
 ```dotenv
 EXPO_PUBLIC_APP_MODE=demo
@@ -59,21 +91,14 @@ Para experimentar tudo sem chamadas ao Google, use `EXPO_PUBLIC_IA_MODE=simulada
 
 As fotografias são ilustrativas; versões e anos não confirmados permanecem desconhecidos. As raridades da demo são cenários didáticos, inclusive o Ferrari no cenário lendário. Isso não equivale a uma classificação histórica verificada. As contas demo e admin demo não são habilitadas em produção.
 
-## Correspondência com Trabalho.pdf
+## Recursos principais
 
-| Critério | Implementação |
-| --- | --- |
-| React Native, Expo, componentização e StyleSheet | `src/app`, `src/components` e `src/utils/tema.ts` |
-| Pelo menos 3 telas com parâmetros | 3 abas, telas Novo spot e Explorar pelo topo, além de publicação, carro e usuário com `[id]` |
-| Formulário com 4 campos variados e validação | Cadastro: nome, usuário, e-mail, senha e switch. Publicação: marca, modelo, versão, cidade, legenda e switch |
-| Zustand global | `useSessao.ts` e `useSincronizacao.ts` |
-| Persistência local/offline | SQLite no celular; AsyncStorage para sessão, prévia web, cache e fila persistente |
-| Axios + TanStack Query | GET, POST, PATCH, PUT e DELETE em `services/supabase.ts`; queries, mutations, estados de erro/carregamento e invalidação |
-| Grupo 1: câmera, galeria e arquivos | `expo-image-picker`, `expo-image-manipulator` e `expo-file-system` em `services/fotografia.ts` |
-
-O recurso central implementado é o **grupo 1**. Não há GPS, biometria, áudio, sensores ou notificações no fluxo do app. Se o sorteio da equipe foi de outro grupo, será necessário adaptar o recurso central.
-
-No modo demo, o cadastro e as interações sociais operam localmente. O reconhecimento Gemini faz uma requisição HTTP real. **As operações HTTP de cadastro e CRUD social ficam no modo produção com Supabase**. Para apresentar essas operações em sala, configure o backend e demonstre a rede com uma conta real de teste.
+- Cadastro demonstrativo, login, perfil e interações sociais em armazenamento local.
+- Publicação de fotos de carros, com análise simulada ou identificação real via Gemini/Supabase.
+- Feed, busca, garagem, ranking, comentários, curtidas e moderação.
+- Preenchimento opcional da cidade usando localização do aparelho. O app salva cidade e estado, não as coordenadas.
+- Entrada biométrica opcional. As credenciais ficam no armazenamento seguro do aparelho.
+- Fotos de posts exibidas em quadro quadrado; novas publicações preenchem o quadro por padrão e permitem alternar para a foto inteira.
 
 ## Arquivos principais
 

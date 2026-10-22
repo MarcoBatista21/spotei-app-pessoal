@@ -1,0 +1,15 @@
+{
+  "build": {
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_MODE": "demo",
+        "EXPO_PUBLIC_IA_MODE": "simulada",
+        "GEMINI_API_KEY": ""
+      }
+    }
+  }
+}

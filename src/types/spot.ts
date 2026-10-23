@@ -12,6 +12,12 @@ export interface Perfil {
   criadoEm: string;
   administrador: boolean;
 }
+export interface Moderador {
+  id: string;
+  email: string;
+  nome: string;
+  usuario: string;
+}
 export interface Carro {
   id: string;
   marca: string;

@@ -219,7 +219,7 @@ end; $$;
 create or replace function public.ranking(periodo text default 'geral', cidade_filtro text default null) returns setof public.perfis_app language sql stable security definer set search_path=public as $$
   select p.id,p.usuario,p.nome,p.bio,p.avatar,p.cidade,
     case when periodo='geral' then p.pontos else coalesce((select sum(c.pontos)::integer from public.user_car_collection c where c.usuario_id=p.id and c.criado_em>=now() - case when periodo='semanal' then interval '7 days' else interval '30 days' end),0) end as pontos,
-    p.criado_em,false from public.profiles p where auth.uid() is not null and (cidade_filtro is null or p.cidade ilike '%'||cidade_filtro||'%') and not exists(select 1 from public.user_roles r where r.usuario_id=p.id and r.administrador) order by pontos desc,p.usuario limit 100;
+    p.criado_em,false from public.profiles p where auth.uid() is not null and (cidade_filtro is null or p.cidade ilike '%'||cidade_filtro||'%') order by pontos desc,p.usuario limit 100;
 $$;
 create or replace function public.painel_moderacao() returns jsonb language plpgsql security definer set search_path=public as $$
 begin

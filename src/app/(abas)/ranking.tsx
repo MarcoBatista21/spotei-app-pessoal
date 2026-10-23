@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Cabecalho } from "@/components/Cabecalho";
@@ -10,10 +10,14 @@ import { Estado } from "@/components/Estado";
 import { obterRanking } from "@/services/servicos";
 import { useSessao } from "@/stores/useSessao";
 import { cores, estilos } from "@/utils/tema";
+import { numeroRomano } from "@/utils/pontuacao";
 export default function Ranking() {
   const [periodo, definirPeriodo] = useState("geral");
   const [cidade, definirCidade] = useState("");
   const id = useSessao((s) => s.perfil?.id);
+  const agora = new Date();
+  const mesesDesdeInicio = (agora.getFullYear() - 2026) * 12 + agora.getMonth() - 10;
+  const season = mesesDesdeInicio >= 0 ? Math.floor(mesesDesdeInicio / 3) + 1 : null;
   const consulta = useQuery({
     queryKey: ["ranking", periodo, cidade],
     queryFn: () => obterRanking(periodo, cidade),
@@ -21,7 +25,8 @@ export default function Ranking() {
   return (
     <View style={estilos.tela}>
       <Cabecalho titulo="Ranking" />
-      <ScrollView contentContainerStyle={estilos.conteudo}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+      <ScrollView keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={estilos.conteudo}>
         <View>
           <Text style={estilos.titulo}>Quem domina as ruas?</Text>
           <Text style={estilos.secundario}>
@@ -32,7 +37,8 @@ export default function Ranking() {
           valor={periodo}
           selecionar={definirPeriodo}
           opcoes={[
-            { valor: "geral", titulo: "Geral" },
+            { valor: "geral", titulo: "All time" },
+            { valor: "season", titulo: season ? `Season ${numeroRomano(season)}` : "Season I" },
             { valor: "semanal", titulo: "Semana" },
             { valor: "mensal", titulo: "Mês" },
           ]}
@@ -43,6 +49,11 @@ export default function Ranking() {
           onChangeText={definirCidade}
           placeholder="Todas as cidades"
         />
+        {periodo === "season" && (
+          <Text style={estilos.secundario}>
+            {season ? `Season ${numeroRomano(season)} · termina em ${new Date(2026, 10 + (season - 1) * 3 + 3, 1).toLocaleDateString("pt-BR")}. Os 5 primeiros recebem uma tag no perfil.` : "A Season I começa em 1º de novembro de 2026 e dura três meses. Os 5 primeiros recebem uma tag no perfil."}
+          </Text>
+        )}
         <Estado
           carregando={consulta.isLoading}
           erro={consulta.error}
@@ -89,9 +100,10 @@ export default function Ranking() {
                   {perfil.usuario}
                   {perfil.id === id ? " · você" : ""}
                 </Text>
-                <Text numberOfLines={1} style={estilos.secundario}>
-                  {perfil.cidade || "Spotter"}
-                </Text>
+                <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap" }}>
+                  <Text numberOfLines={1} style={estilos.secundario}>{perfil.cidade || "Spotter"}</Text>
+                  {perfil.administrador && <Text style={{ color: "#D6B5FF", backgroundColor: "#59318C", borderRadius: 8, paddingHorizontal: 7, fontSize: 11, overflow: "hidden" }}>Mod</Text>}
+                </View>
               </View>
               <Text style={[estilos.subtitulo, estilos.destaque]}>
                 {perfil.pontos}
@@ -108,6 +120,7 @@ export default function Ranking() {
           aprovação.
         </Text>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

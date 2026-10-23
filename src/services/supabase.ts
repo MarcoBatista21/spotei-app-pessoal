@@ -5,6 +5,7 @@ import { obterBytes } from "./fotografia";
 import type {
   Comentario,
   Identificacao,
+  Moderador,
   NovaPublicacao,
   Perfil,
   Publicacao,
@@ -66,11 +67,18 @@ export const supabase = {
   },
   async cadastrar(nome: string, apelido: string, email: string, senha: string) {
     validarConfiguracao();
-    const { data } = await apiAuth.post("/signup", {
-      email,
-      password: senha,
-      data: { nome, usuario: apelido },
-    });
+    const redirectTo =
+      Platform.OS === "web" && typeof window !== "undefined"
+        ? `${window.location.origin}/confirmar-email`
+        : "spotei://confirmar-email";
+    const { data } = await apiAuth.post(
+      `/signup?redirect_to=${encodeURIComponent(redirectTo)}`,
+      {
+        email,
+        password: senha,
+        data: { nome, usuario: apelido },
+      },
+    );
     if (data.access_token) {
       useSessao.getState().atualizarSessao({
         ...data,
@@ -141,11 +149,29 @@ export const supabase = {
     );
     return data;
   },
+  async moderadores(): Promise<Moderador[]> {
+    const { data } = await api.post<Moderador[]>(
+      "/rest/v1/rpc/listar_moderadores",
+    );
+    return data;
+  },
+  async gerenciarModerador(email: string, promover: boolean) {
+    await api.post("/rest/v1/rpc/gerenciar_moderador", {
+      p_email: email.trim(),
+      p_promover: promover,
+    });
+  },
   async ranking(periodo: string, cidade: string) {
     const { data } = await api.post<Perfil[]>("/rest/v1/rpc/ranking", {
       periodo,
       cidade_filtro: cidade || null,
     });
+    return data;
+  },
+  async tagsTemporada(id: string): Promise<{ season: number; colocacao: number }[]> {
+    const { data } = await api.get<{ season: number; colocacao: number }[]>(
+      `/rest/v1/season_awards?usuario_id=eq.${encodeURIComponent(id)}&select=season,colocacao&order=season.desc`,
+    );
     return data;
   },
   async editarPerfil(

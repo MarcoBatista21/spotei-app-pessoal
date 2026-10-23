@@ -25,6 +25,7 @@ import {
   calcularNivel,
   obterConquistas,
   obterGaragem,
+  numeroRomano,
 } from "@/utils/pontuacao";
 import { cores, estilos } from "@/utils/tema";
 import { filaSincronizacao } from "@/utils/filaSincronizacao";
@@ -39,6 +40,10 @@ export function PerfilConteudo({ id }: { id: string }) {
   const proprio = useSessao((s) => s.perfil?.id) === id;
   const perfil = usePerfil(id);
   const spots = usePublicacoesPerfil(id);
+  const tagsTemporada = useQuery({
+    queryKey: ["tags-temporada", id],
+    queryFn: () => servicos.tagsTemporada(id),
+  });
   const seguindo = useQuery({
     queryKey: ["seguindo", id],
     queryFn: () => servicos.seguindo(),
@@ -193,6 +198,13 @@ export function PerfilConteudo({ id }: { id: string }) {
                     <Text style={visual.rotulo}>{perfil.data.cidade}</Text>
                   </View>
                 )}
+                <View style={visual.tags}>
+                  {perfil.data.administrador && <Text style={[visual.tag, { backgroundColor: "#59318C", color: "#E6D2FF" }]}>Mod</Text>}
+                  {tagsTemporada.data?.map((tag) => {
+                    const medalhas = ["#D4AF37", "#C0C0C0", "#CD7F32", "#71C8FF", "#71C8FF"];
+                    return <Text key={tag.season} style={[visual.tag, { backgroundColor: medalhas[tag.colocacao - 1], color: tag.colocacao < 4 ? "#17120A" : "#061927" }]}>{`Top ${tag.colocacao} · Season ${numeroRomano(tag.season)}`}</Text>;
+                  })}
+                </View>
               </View>
               {proprio ? (
                 <View style={[estilos.linha, { gap: 8 }]}>
@@ -453,6 +465,8 @@ const visual = StyleSheet.create({
   rotulo: { color: cores.secundario, fontSize: 12, lineHeight: 18 },
   nome: { color: cores.texto, fontSize: 16, fontWeight: "700" },
   biografia: { color: cores.texto, fontSize: 13, lineHeight: 20 },
+  tags: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
+  tag: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5, fontSize: 11, fontWeight: "800", overflow: "hidden" },
   nivel: { gap: 8, paddingTop: 2 },
   pontos: { color: cores.destaque, fontSize: 12, fontWeight: "700" },
   trilho: {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Cabecalho } from "@/components/Cabecalho";
@@ -34,9 +34,11 @@ export default function Explorar() {
   return (
     <View style={estilos.tela}>
       <Cabecalho titulo="Explorar" />
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
       <ScrollView
         contentContainerStyle={estilos.conteudo}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         <View>
           <Text style={estilos.titulo}>Seu próximo achado.</Text>
@@ -109,6 +111,7 @@ export default function Explorar() {
           />
         )}
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }

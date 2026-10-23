@@ -289,6 +289,7 @@ export default function Publicar() {
       <ScrollView
         ref={rolagem}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         scrollEnabled={!revelando}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={visual.conteudo}

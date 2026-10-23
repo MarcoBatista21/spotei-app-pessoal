@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { router } from "expo-router";
 import { useQuery } from "@tanstack/react-query";
 import { servicos } from "@/services/servicos";
@@ -14,7 +14,7 @@ import { Confirmacao } from "@/components/Confirmacao";
 import { Raridade as SeloRaridade } from "@/components/Raridade";
 import { nomesRaridade } from "@/utils/pontuacao";
 import { estilos } from "@/utils/tema";
-import type { Publicacao, Carro, Raridade } from "@/types/spot";
+import type { Publicacao, Carro, Moderador, Raridade } from "@/types/spot";
 function Revisao({ publicacao }: { publicacao: Publicacao }) {
   const [marca, definirMarca] = useState(publicacao.carro.marca);
   const [modelo, definirModelo] = useState(publicacao.carro.modelo);
@@ -117,7 +117,11 @@ function EditarCatalogo({ carro }: { carro: Carro }) {
 }
 export default function Moderacao() {
   const admin = useSessao((s) => s.perfil?.administrador);
+  const perfilId = useSessao((s) => s.perfil?.id);
   const [aba, definirAba] = useState("pendentes");
+  const [emailModerador, definirEmailModerador] = useState("");
+  const [moderadorRemover, definirModeradorRemover] =
+    useState<Moderador | null>(null);
   const [registroInvalidar, definirRegistroInvalidar] = useState<string | null>(
     null,
   );
@@ -131,6 +135,15 @@ export default function Moderacao() {
     definirRegistroInvalidar(null);
   });
   const arquivar = useAcao((id: string) => servicos.resolverDenuncia(id));
+  const moderadores = useQuery({
+    queryKey: ["moderadores"],
+    queryFn: () => servicos.moderadores(),
+    enabled: !!admin && aba === "moderadores",
+  });
+  const gerenciarModerador = useAcao(
+    (dados: { email: string; promover: boolean }) =>
+      servicos.gerenciarModerador(dados.email, dados.promover),
+  );
   if (!admin)
     return (
       <View style={estilos.conteudo}>
@@ -143,7 +156,8 @@ export default function Moderacao() {
       </View>
     );
   return (
-    <ScrollView contentContainerStyle={estilos.conteudo}>
+    <KeyboardAvoidingView style={estilos.tela} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+    <ScrollView contentContainerStyle={estilos.conteudo} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
       <Text style={estilos.titulo}>Uma comunidade justa.</Text>
       <Text style={estilos.secundario}>
         Confirme a identificação e a raridade antes de aprovar pontos.
@@ -156,6 +170,7 @@ export default function Moderacao() {
           { valor: "denuncias", titulo: "Denúncias" },
           { valor: "catalogo", titulo: "Catálogo" },
           { valor: "historico", titulo: "Pontos" },
+          { valor: "moderadores", titulo: "Moderadores" },
         ]}
       />
       <Estado
@@ -249,6 +264,79 @@ export default function Moderacao() {
           )}
         </>
       )}
+      {aba === "moderadores" && (
+        <>
+          <View style={estilos.card}>
+            <Text style={estilos.subtitulo}>Adicionar moderador</Text>
+            <Text style={estilos.secundario}>
+              A pessoa precisa ter uma conta cadastrada no Spotei.
+            </Text>
+            <Campo
+              titulo="E-mail da conta"
+              value={emailModerador}
+              onChangeText={definirEmailModerador}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+            />
+            <Botao
+              titulo="Conceder moderação"
+              onPress={() =>
+                gerenciarModerador.mutate({
+                  email: emailModerador,
+                  promover: true,
+                })
+              }
+              carregando={gerenciarModerador.isPending}
+              desabilitado={!emailModerador.trim()}
+            />
+            <Estado erro={gerenciarModerador.error} />
+          </View>
+          <Estado
+            carregando={moderadores.isLoading}
+            erro={moderadores.error}
+            repetir={() => void moderadores.refetch()}
+          />
+          {moderadores.data?.map((moderador) => (
+            <View key={moderador.id} style={estilos.card}>
+              <Text style={estilos.texto}>
+                {moderador.nome} (@{moderador.usuario})
+              </Text>
+              <Text style={estilos.secundario}>{moderador.email}</Text>
+              <Botao
+                titulo={
+                  moderador.id === perfilId
+                    ? "Sua conta"
+                    : "Remover moderação"
+                }
+                onPress={() => definirModeradorRemover(moderador)}
+                desabilitado={moderador.id === perfilId}
+                secundario
+              />
+            </View>
+          ))}
+          {moderadores.data?.length === 0 && (
+            <Estado vazio="Nenhum moderador cadastrado." />
+          )}
+          <Confirmacao
+            aberta={!!moderadorRemover}
+            titulo="Remover acesso de moderador?"
+            texto={`@${moderadorRemover?.usuario} perderá acesso às ferramentas de moderação.`}
+            confirmar={() => {
+              if (!moderadorRemover) return;
+              gerenciarModerador.mutate({
+                email: moderadorRemover.email,
+                promover: false,
+              });
+              definirModeradorRemover(null);
+            }}
+            cancelar={() => definirModeradorRemover(null)}
+            carregando={gerenciarModerador.isPending}
+            erro={gerenciarModerador.error}
+          />
+        </>
+      )}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

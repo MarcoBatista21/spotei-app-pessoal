@@ -18,6 +18,7 @@ import type {
   Identificacao,
   NovaPublicacao,
   Perfil,
+  Moderador,
   Raridade,
 } from "@/types/spot";
 
@@ -196,7 +197,38 @@ export const demo = {
     return perfil;
   },
   async perfis() {
-    return (await dados()).perfis.filter((p) => !p.administrador);
+    return (await dados()).perfis;
+  },
+  async moderadores(): Promise<Moderador[]> {
+    const banco = await dados();
+    return banco.perfis
+      .filter((perfil) => perfil.administrador)
+      .map((perfil) => ({
+        id: perfil.id,
+        nome: perfil.nome,
+        usuario: perfil.usuario,
+        email:
+          banco.contas.find((conta) => conta.perfil.id === perfil.id)?.email ??
+          "",
+      }));
+  },
+  async gerenciarModerador(email: string, promover: boolean) {
+    await alterar((banco) => {
+      if (!usuario().administrador)
+        throw new Error("Apenas moderadores podem gerenciar outros moderadores.");
+      const conta = banco.contas.find(
+        (item) => item.email.toLowerCase() === email.trim().toLowerCase(),
+      );
+      const alvo = banco.perfis.find((perfil) => perfil.id === conta?.perfil.id);
+      if (!alvo) throw new Error("Conta não encontrada. A pessoa precisa se cadastrar primeiro.");
+      if (
+        !promover &&
+        alvo.administrador &&
+        banco.perfis.filter((perfil) => perfil.administrador).length <= 1
+      )
+        throw new Error("Não é possível remover o último moderador.");
+      alvo.administrador = promover;
+    });
   },
   async editarPerfil(
     campos: Pick<Perfil, "nome" | "usuario" | "bio" | "cidade" | "avatar">,

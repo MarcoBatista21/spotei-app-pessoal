@@ -36,6 +36,8 @@ export const servicos = {
   publicacao: (id: string) =>
     comCache(`publicacao-${id}`, () => provedor.publicacao(id)),
   perfis: () => comCache("perfis", () => provedor.perfis()),
+  tagsTemporada: (id: string) =>
+    modoDemo ? Promise.resolve([] as { season: number; colocacao: number }[]) : supabase.tagsTemporada(id),
   seguindo: () => comCache("seguindo", () => provedor.seguindo()),
   comentarios: (id: string) =>
     comCache(`comentarios-${id}`, () => provedor.comentarios(id)),
@@ -91,6 +93,11 @@ export async function obterRanking(
     );
   const perfis = await demo.perfis();
   const publicacoes = await demo.feed();
+  const agora = new Date();
+  const mesesDesdeInicio = (agora.getFullYear() - 2026) * 12 + agora.getMonth() - 10;
+  const numeroSeason = mesesDesdeInicio >= 0 ? Math.floor(mesesDesdeInicio / 3) : -1;
+  const inicioSeason = numeroSeason >= 0 ? new Date(2026, 10 + numeroSeason * 3, 1) : null;
+  const fimSeason = inicioSeason ? new Date(inicioSeason.getFullYear(), inicioSeason.getMonth() + 3, 1) : null;
   const dias = periodo === "semanal" ? 7 : periodo === "mensal" ? 30 : Infinity;
   return perfis
     .map((perfil) => ({
@@ -100,12 +107,14 @@ export async function obterRanking(
           (p) =>
             p.autorId === perfil.id &&
             p.estado === "aprovado" &&
-            Date.parse(p.criadoEm) >= Date.now() - dias * 86400000,
+            (periodo === "geral" || (periodo === "season"
+              ? !!inicioSeason && !!fimSeason && Date.parse(p.criadoEm) >= inicioSeason.getTime() && Date.parse(p.criadoEm) < fimSeason.getTime()
+              : Date.parse(p.criadoEm) >= Date.now() - dias * 86400000)),
         )
         .reduce((total, p) => total + p.pontos, 0),
     }))
     .filter(
       (p) => !cidade || p.cidade.toLowerCase().includes(cidade.toLowerCase()),
     )
-    .sort((a, b) => b.pontos - a.pontos);
+    .sort((a, b) => b.pontos - a.pontos || a.usuario.localeCompare(b.usuario));
 }

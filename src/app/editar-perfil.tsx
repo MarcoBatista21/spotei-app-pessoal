@@ -48,6 +48,7 @@ export default function EditarPerfil() {
     >
       <ScrollView
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={estilos.conteudo}
       >
       <Text style={estilos.titulo}>Do seu jeito.</Text>

@@ -52,6 +52,14 @@ npx eas-cli@latest build --platform android --profile preview
 
 Ao terminar, o EAS fornece um link para baixar e instalar o APK. Compartilhe esse link somente com os testadores. O Android pode pedir autorização para instalar aplicativos baixados fora da Play Store. O plano gratuito do EAS tem uma cota mensal limitada de builds; confira os [limites atuais](https://expo.dev/pricing).
 
+Para criar um APK Android ligado ao Supabase e com análise Gemini real, use o perfil `preview-real`. Ele gera APK de distribuição interna e busca as variáveis públicas do ambiente `preview` do EAS. Configure `EXPO_PUBLIC_SUPABASE_URL` e `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` na página **Project settings > Environment variables** do projeto Expo, ambiente `preview`. A chave publicável (ou `anon` legada) é feita para estar no cliente; nunca use `service_role` nem a chave Gemini no APK. Depois, gere a build com:
+
+```powershell
+npx eas-cli@latest build --platform android --profile preview-real
+```
+
+O APK só funcionará no modo real depois de configurar o projeto Supabase, aplicar as migrações e publicar a Edge Function. Veja **Habilitar Supabase e Gemini** abaixo. A build `preview` sem `-real` continua sendo a demonstração local.
+
 O perfil `preview` usa `EXPO_PUBLIC_APP_MODE=demo` e `EXPO_PUBLIC_IA_MODE=simulada`. Para testar feed compartilhado ou análise Gemini real, configure o Supabase e publique a função de identificação conforme a seção abaixo; a rota local `src/app/api/analisar+api.ts` é apenas para desenvolvimento e não funciona como backend de um APK publicado. Nunca coloque `GEMINI_API_KEY` em `EXPO_PUBLIC_` nem envie `.env` ao GitHub.
 
 A distribuição nativa para iPhone por TestFlight ou instalação ad hoc exige uma conta Apple Developer paga. Consulte os [requisitos e valores da Apple](https://developer.apple.com/programs/).
@@ -124,34 +132,36 @@ Não foi alterado o projeto de referência. As telas compartilham componentes; a
 
 ## Habilitar Supabase e Gemini
 
-1. Crie um projeto Supabase e uma chave Gemini na sua própria conta.
-2. Copie `.env.example` para `.env`. Preencha a URL e a chave **pública** do Supabase e use `EXPO_PUBLIC_APP_MODE=production`.
-3. No SQL Editor do Supabase, execute as migrações de `supabase/migrations` em ordem de data (`202610070001_spotei.sql`, `202610140001_denuncias.sql` e `202610200001_enquadramento.sql`) e por fim `supabase/seed.sql`. Se o banco já existir, aplique apenas as migrações novas. Em um projeto vazio, também é possível usar a CLI:
+1. Crie um projeto Supabase e uma chave Gemini na sua própria conta. Guarde o **Project reference** (identificador do projeto) e a URL do projeto.
+2. No Dashboard do Supabase, em **Project Settings > API Keys**, copie a chave publicável (`sb_publishable_...`) ou, em projetos antigos, a chave `anon`. No Dashboard do Expo, em **Project settings > Environment variables**, crie no ambiente `preview` estas duas variáveis: `EXPO_PUBLIC_SUPABASE_URL` com a URL do Supabase e `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY` com a chave publicável. Elas estarão incluídas no APK e podem ser vistas por quem o instalar; a segurança dos dados depende das políticas RLS e da chave publicável, nunca de esconder essa chave.
+3. Para desenvolvimento local, copie `.env.example` para `.env`, preencha a mesma URL e chave pública e defina `EXPO_PUBLIC_APP_MODE=production`. Não copie a chave Gemini ou `service_role` para esse arquivo do app.
+4. Aplique as migrações de `supabase/migrations` em ordem de data (`202610070001_spotei.sql`, `202610140001_denuncias.sql` e `202610200001_enquadramento.sql`). Elas criam as tabelas e regras, mas deixam `car_brands` e `car_catalog` vazias. **Não execute `supabase/seed.sql` nem use `--include-seed`** se quiser que o catálogo seja formado pelos carros identificados pela IA. Em um projeto vazio, use a CLI:
 
 ```powershell
 npx supabase login
 npx supabase link --project-ref SEU_PROJECT_REF
-npx supabase db push --include-seed
+npx supabase db push
 ```
 
-4. Copie `supabase/.env.example` para `supabase/.env` e preencha `GEMINI_API_KEY` e `GEMINI_MODEL`. O modelo é configurável; escolha um Flash multimodal que sua conta ofereça e que suporte resposta estruturada. Implante:
+5. Copie `supabase/.env.example` para `supabase/.env` e preencha `GEMINI_API_KEY` e `GEMINI_MODEL`. Esse arquivo é apenas para a CLI e não deve ser enviado ao Git. O modelo é configurável; escolha um Flash multimodal que sua conta ofereça e que suporte resposta estruturada. Implante:
 
 ```powershell
 npx supabase secrets set --env-file supabase/.env
 npx supabase functions deploy identify-vehicle
 ```
 
-5. Cadastre-se no app. Para habilitar sua conta administrativa, execute no SQL Editor com o ID real da conta:
+6. Cadastre-se no app e confirme o e-mail. Para conceder o primeiro papel de moderador, execute no SQL Editor substituindo o endereço de exemplo pelo e-mail cadastrado:
 
 ```sql
 insert into public.user_roles(usuario_id, administrador)
-values ('UUID_DA_SUA_CONTA', true)
+select id, true from auth.users where lower(email) = lower('EMAIL_CADASTRADO')
 on conflict(usuario_id) do update set administrador = true;
 ```
 
-6. Em Auth > URL Configuration, autorize `spotei://redefinir-senha` para builds nativos e a URL web `/redefinir-senha` para o navegador. `EXPO_PUBLIC_RECOVERY_URL` permite definir uma URL de recuperação específica. Configure o envio de e-mail do Supabase e confirme o e-mail do cadastro.
-7. Reinicie o Expo depois de editar `.env`: `npx expo start --clear`.
+7. No Supabase hospedado, o Site URL e Redirect URLs ja estao configurados para `spotei://confirmar-email` e `spotei://**`. A tela `confirmar-email` recebe o link no app. Para web, autorize a URL do site e `/confirmar-email` e `/redefinir-senha`. `EXPO_PUBLIC_RECOVERY_URL` permite definir um destino de recuperacao especifico. Configure o envio de e-mail do Supabase.
+8. Para gerar o APK Android com backend real, use `npx eas-cli@latest build --platform android --profile preview-real`. Para desenvolvimento local, reinicie o Expo depois de editar `.env`: `npx expo start --clear`.
 
+Depois que o primeiro moderador for definido, ele pode adicionar ou remover moderadores pela aba **Moderadores** da tela de moderação. A conta `marco.rosa.22@hotmail.com` ja esta promovida no projeto hospedado.
 Nunca coloque Gemini ou a chave `service_role` em variáveis `EXPO_PUBLIC_`. A função obtém as credenciais de Supabase pelo ambiente do servidor. `verify_jwt=false` só desativa a checagem do gateway: a função **valida o token com Supabase Auth em cada chamada** antes de acessar a foto.
 
 ## Regras e segurança
@@ -204,6 +214,6 @@ Para testar câmera/galeria pela interface com **chamadas reais ao Google**, dei
 
 Foram validados TypeScript, lint, dependências Expo, compilação web/Android/iOS, regras da demo, esquema de resposta da IA e migração SQL executada em PostgreSQL via PGlite. Os testes do banco substituem apenas Auth/Storage por estruturas locais; não substituem as funções de pontuação. O fluxo no navegador também verificou seleção real de arquivo pela galeria, preparação JPEG, publicação pendente sem pontos antecipados e aprovação administrativa.
 
-Não foi possível executar câmera ou SQLite em um aparelho físico neste ambiente. O botão Fotografar é testado no navegador por seleção de arquivo; no celular ele abre a câmera nativa. As chamadas ao Gemini são reais. O Supabase ainda precisa das credenciais e de um teste de integração no projeto hospedado. As dependências transitivas do SDK 57 possuem avisos no `npm audit`; não foram aplicados os downgrades incompatíveis sugeridos automaticamente.
+Nao foi possivel executar camera ou SQLite em um aparelho fisico neste ambiente. O botao Fotografar e exercitado no navegador por selecao de arquivo; no celular abre a camera nativa. As chamadas ao Gemini sao reais, e as credenciais e migracoes do Supabase estao configuradas no projeto hospedado; falta validar o fluxo final em aparelhos fisicos. As dependencias transitivas do SDK 57 possuem avisos no `npm audit`; nao foram aplicados os downgrades incompativeis sugeridos automaticamente.
 
 Roteiro de apresentação: entrar na demo, publicar uma foto, mostrar validação e câmera/galeria, abrir garagem/ranking, desligar a internet e reabrir dados, explicar Zustand e SQLite, e usar uma conta Supabase de teste para demonstrar GET e mutações HTTP. Teste a permissão negada da câmera no celular antes de apresentar.

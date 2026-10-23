@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <g fill="#fff">
+    <path transform="translate(176 300) scale(1.12)" d="M20 65 Q94 58 186 27 Q294 -7 352 16 Q392 28 425 54 Q532 42 591 91 L551 76 Q512 56 423 61 Q323 78 194 64 Q308 67 390 54 Q344 9 287 14 Q217 15 136 45 Q201 40 244 57 Q145 35 48 69 L71 80 L32 79 L21 91 L26 72 Z"/>
+  </g>
+  <text x="512" y="646" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="126" font-weight="900" font-style="italic" letter-spacing="5">SPOTEI</text>
+  <text x="512" y="716" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="27" letter-spacing="12">CAR SPOTTING</text>
+</svg>

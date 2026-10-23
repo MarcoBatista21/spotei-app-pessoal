@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="44%" cy="18%" r="90%">
+      <stop offset="0" stop-color="#17191d"/>
+      <stop offset="0.58" stop-color="#08090b"/>
+      <stop offset="1" stop-color="#020203"/>
+    </radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f4f5f6" stop-opacity=".82"/>
+      <stop offset=".24" stop-color="#686b70" stop-opacity=".2"/>
+      <stop offset=".8" stop-color="#484b50" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#d9dadd" stop-opacity=".5"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect x="46" y="46" width="932" height="932" rx="174" fill="none" stroke="url(#edge)" stroke-width="8"/>
+  <g transform="translate(176 300) scale(1.12)" fill="#fff">
+    <path d="M20 65 Q94 58 186 27 Q294 -7 352 16 Q392 28 425 54 Q532 42 591 91 L551 76 Q512 56 423 61 Q323 78 194 64 Q308 67 390 54 Q344 9 287 14 Q217 15 136 45 Q201 40 244 57 Q145 35 48 69 L71 80 L32 79 L21 91 L26 72 Z"/>
+  </g>
+  <text x="512" y="646" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="126" font-weight="900" font-style="italic" letter-spacing="5">SPOTEI</text>
+  <text x="512" y="716" text-anchor="middle" fill="#fff" font-family="Arial, sans-serif" font-size="27" letter-spacing="12">CAR SPOTTING</text>
+</svg>

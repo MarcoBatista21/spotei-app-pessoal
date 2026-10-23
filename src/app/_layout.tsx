@@ -57,6 +57,10 @@ export default function Layout() {
               >
                 <Stack.Screen name="index" options={{ headerShown: false }} />
                 <Stack.Screen
+                  name="confirmar-email"
+                  options={{ title: "Confirmação de e-mail" }}
+                />
+                <Stack.Screen
                   name="redefinir-senha"
                   options={{ title: "Recuperar senha" }}
                 />
